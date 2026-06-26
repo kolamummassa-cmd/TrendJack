@@ -60,17 +60,41 @@
     </div>
 </div>
 
+<!-- Avalanche Wallet Access Banner -->
+{% if not has_access %}
+<div class="alert border-0 mb-4" style="background: linear-gradient(135deg, #e84142 0%, #ff6b6b 100%); color: white;">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div>
+            <h5 class="mb-1">
+                <img src="https://cryptologos.cc/logos/avalanche-avax-logo.png" height="24" class="me-2">
+                KUZ Token Required
+            </h5>
+            <p class="mb-0 small">
+                Connect your Avalanche wallet to unlock AI-generated content briefs.
+                Powered by the Avalanche network.
+            </p>
+        </div>
+        <button onclick="connectAndCheck()" class="btn btn-light fw-bold">
+            🦊 Connect Wallet to Unlock
+        </button>
+    </div>
+</div>
+{% endif %}
+
 {% if trend.brief %}
 {% with brief=trend.brief %}
+
+{% if has_access %}
+<!-- FULL BRIEF — shown to wallet-authorized users -->
 
 <!-- Why It's Trending -->
 <div class="card border-0 shadow-sm mb-3">
     <div class="card-body brief-section">
         <h6><i class="bi bi-graph-up-arrow"></i> Why It's Trending</h6>
-        <p class="mb-0">{{ brief.why_trending }}</p>
+        <p class="mb-3">{{ brief.why_trending }}</p>
 
         <h6><i class="bi bi-person-badge"></i> Why Entrepreneurs Should Care</h6>
-        <p class="mb-0">{{ brief.why_entrepreneurs_care }}</p>
+        <p class="mb-3">{{ brief.why_entrepreneurs_care }}</p>
 
         <h6><i class="bi bi-compass"></i> Suggested Content Angle</h6>
         <p class="mb-0">{{ brief.content_angle }}</p>
@@ -128,7 +152,43 @@
     </div>
 </div>
 
+{% else %}
+<!-- TEASER — shown to non-authorized wallets -->
+<div class="card border-warning border-2 mb-4">
+    <div class="card-body text-center py-5">
+        <h3>🔒 Premium AI Brief Locked</h3>
+        <p class="text-muted fs-5">
+            This content brief is exclusively available to KUZ token holders on the Avalanche network.
+        </p>
+
+        <!-- Teaser preview -->
+        <div class="alert alert-secondary mt-3 text-start">
+            <strong><i class="bi bi-eye"></i> Preview:</strong>
+            {{ brief.why_trending|truncatewords:25 }}...
+        </div>
+
+        <p class="mt-3 fw-bold">Connect your wallet to unlock:</p>
+        <ul class="list-unstyled text-start d-inline-block mb-4">
+            <li>✅ Why this trend is happening</li>
+            <li>✅ Why entrepreneurs should care</li>
+            <li>✅ Suggested content angle</li>
+            <li>✅ LinkedIn post ideas</li>
+            <li>✅ Instagram Reel concepts</li>
+            <li>✅ Suggested hook and title</li>
+        </ul>
+        <br>
+        <button onclick="connectAndCheck()" class="btn btn-danger btn-lg">
+            🦊 Connect Avalanche Wallet
+        </button>
+        <p class="text-muted small mt-3">
+            Powered by Avalanche Network &nbsp;|&nbsp; Fuji Testnet
+        </p>
+    </div>
+</div>
+{% endif %}
+
 {% endwith %}
+
 {% else %}
 <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap">
     <div>
@@ -184,6 +244,64 @@
 
 {% block extra_js %}
 <script>
+// Connect wallet and check access for this specific trend detail page
+async function connectAndCheck() {
+    if (typeof window.ethereum === 'undefined') {
+        alert('MetaMask is not installed. Please install it from metamask.io');
+        return;
+    }
+
+    try {
+        const accounts = await window.ethereum.request({
+            method: 'eth_requestAccounts'
+        });
+
+        const walletAddress = accounts[0];
+
+        // Switch to Avalanche Fuji Testnet
+        try {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: '0xA869' }],
+            });
+        } catch (switchError) {
+            if (switchError.code === 4902) {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: '0xA869',
+                        chainName: 'Avalanche Fuji Testnet',
+                        nativeCurrency: { name: 'AVAX', symbol: 'AVAX', decimals: 18 },
+                        rpcUrls: ['https://api.avax-test.network/ext/bc/C/rpc'],
+                        blockExplorerUrls: ['https://testnet.snowtrace.io']
+                    }]
+                });
+            }
+        }
+
+        // Check access with Django
+        const response = await fetch('/check-wallet/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address: walletAddress })
+        });
+
+        const data = await response.json();
+
+        if (data.access) {
+            // Reload page with wallet address as query param
+            window.location.href = window.location.pathname + '?wallet=' + walletAddress;
+        } else {
+            alert('⚠️ Your wallet does not have access yet.\n\nWallet: ' + walletAddress + '\n\nContact the Kuzana team to request access.');
+        }
+
+    } catch (error) {
+        console.error(error);
+        alert('Wallet connection failed: ' + error.message);
+    }
+}
+
+// Copy button functionality
 document.querySelectorAll('.copy-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
         var targetId = btn.getAttribute('data-copy-target');

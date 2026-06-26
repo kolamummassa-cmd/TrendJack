@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django.db.models import Count
 
 from trends.models import Trend
+from core.models import WalletAccess
 
 
 def dashboard(request):
@@ -49,10 +50,27 @@ def dashboard(request):
     return render(request, "trends/dashboard.html", context)
 
 
+# In trends/views.py — update the trend_detail view
+
+
+
+
 def trend_detail(request, pk):
-    """
-    Placeholder detail view — fully built out in Step 6.
-    Just confirms routing/lookup works for now.
-    """
     trend = get_object_or_404(Trend, pk=pk)
-    return render(request, "trends/trend_detail.html", {"trend": trend})
+    brief = getattr(trend, 'brief', None)
+
+    # Check wallet access
+    wallet_address = request.GET.get('wallet', '').strip()
+    has_access = False
+
+    if wallet_address:
+        has_access = WalletAccess.objects.filter(
+            wallet_address__iexact=wallet_address,
+            is_active=True
+        ).exists()
+
+    return render(request, "trends/trend_detail.html", {
+        "trend": trend,
+        "brief": brief,
+        "has_access": has_access,
+    })

@@ -38,6 +38,13 @@
             </ul>
         </div>
     </div>
+    <!-- Add this inside your navbar, before the closing </nav> tag -->
+<button
+  id="wallet-btn"
+  onclick="connectWallet()"
+  class="btn btn-outline-warning btn-sm ms-3">
+  🦊 Connect Wallet
+</button>
 </nav>
 
 <main class="container py-4">
@@ -60,5 +67,87 @@
 <!-- Bootstrap JS bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 {% block extra_js %}{% endblock %}
+
+<!-- Avalanche Wallet Connect -->
+<script>
+  let connectedWallet = null;
+
+  async function connectWallet() {
+    if (typeof window.ethereum === 'undefined') {
+      alert('MetaMask is not installed. Please install it from metamask.io');
+      return;
+    }
+
+    try {
+      // Request wallet connection
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+
+      connectedWallet = accounts[0];
+
+      // Switch to Avalanche Fuji Testnet
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0xA869' }], // Fuji testnet chain ID
+        });
+      } catch (switchError) {
+        // If network doesn't exist, add it
+        if (switchError.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0xA869',
+              chainName: 'Avalanche Fuji Testnet',
+              nativeCurrency: { name: 'AVAX', symbol: 'AVAX', decimals: 18 },
+              rpcUrls: ['https://api.avax-test.network/ext/bc/C/rpc'],
+              blockExplorerUrls: ['https://testnet.snowtrace.io']
+            }]
+          });
+        }
+      }
+
+      // Check access with Django
+      const response = await fetch('/check-wallet/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: connectedWallet })
+      });
+
+      const data = await response.json();
+
+      if (data.access) {
+        document.getElementById('wallet-btn').innerHTML =
+          `✅ ${connectedWallet.substring(0, 6)}...${connectedWallet.substring(38)} (Access Granted)`;
+        document.getElementById('wallet-btn').classList.remove('btn-outline-warning');
+        document.getElementById('wallet-btn').classList.add('btn-success');
+        // Reload page to show full briefs
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        document.getElementById('wallet-btn').innerHTML =
+          `⚠️ ${connectedWallet.substring(0, 6)}...${connectedWallet.substring(38)} (No Access)`;
+        document.getElementById('wallet-btn').classList.remove('btn-outline-warning');
+        document.getElementById('wallet-btn').classList.add('btn-warning');
+      }
+
+    } catch (error) {
+      console.error(error);
+      alert('Wallet connection failed: ' + error.message);
+    }
+  }
+
+  // Store wallet in session on page load if already connected
+  window.addEventListener('load', async () => {
+    if (typeof window.ethereum !== 'undefined') {
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      if (accounts.length > 0) {
+        connectedWallet = accounts[0];
+        document.getElementById('wallet-btn').innerHTML =
+          `🦊 ${connectedWallet.substring(0, 6)}...${connectedWallet.substring(38)}`;
+      }
+    }
+  });
+</script>
 </body>
 </html>
