@@ -1,0 +1,68 @@
+:root {
+    --tj-navy: #0f1729;
+    --tj-blue: #2563eb;
+    --tj-blue-light: #eff6ff;
+    --tj-green: #16a34a;
+    --tj-amber: #d97706;
+    --tj-red: #dc2626;
+}
+
+body {
+    background-color: #f7f8fa;
+    color: #1f2937;
+}
+
+.trendjack-navbar {
+    background-color: var(--tj-navy) !important;
+}
+
+.hero-section {
+    min-height: 60vh;
+}
+
+.card {
+    border-radius: 0.75rem;
+}
+
+/* Score badges used on dashboard + detail pages */
+.score-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.85rem;
+}
+
+.score-high {
+    background-color: #dcfce7;
+    color: var(--tj-green);
+}
+
+.score-medium {
+    background-color: #fef3c7;
+    color: var(--tj-amber);
+}
+
+.score-low {
+    background-color: #fee2e2;
+    color: var(--tj-red);
+}
+
+.trend-card {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.trend-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08);
+}
+
+.brief-section h6 {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    margin-top: 1.5rem;
+}
